@@ -47,9 +47,11 @@ class BookManagementForm:
         with columns[1]:
             self.author = st.text_input(label='author', label_visibility='hidden', placeholder='Author')
         if st.button('Add my book!'):
-            pass
+            return self.title, self.author, self.start_date
+        return None, None, None
 
-    def display_remove_form(self, books: list):
+    @staticmethod
+    def display_remove_form(books: list):
         st.header('Do you want to remove a book?')
 
         book_titles = [book[0] for book in books]
@@ -57,6 +59,7 @@ class BookManagementForm:
 
         if st.button('Remove book'):
             return selected_book
+        return None
 
 
 class ProgressVisualization:
@@ -78,16 +81,23 @@ if __name__ == '__main__':
         ["Pride and Prejudice", "Jane Austen"],
         ["Moby-Dick", "Herman Melville"]
     ]
-    opt1, opt2, opt3 = ReadingInputForm(book_list).display()
-    opt4 = BookManagementForm().display_remove_form(book_list)
-    ProgressVisualization().display_grid(0)
-    ProgressVisualization().display_graph(0)
 
-    if opt1:
+    # Display reading input form
+    opt1, opt2, opt3 = ReadingInputForm(book_list).display()
+    if opt1 and opt2 and opt3:
         print('Book title: ' + opt1)
         print('Progress date: ' + str(opt2))
         print('Pages read: ' + str(opt3))
 
-    if opt4:
-        print('Book to remove: ' + opt4)
+    # Display add book form
+    new_book_title, new_book_author, start_date = BookManagementForm().display_add_form()
+    if new_book_title and new_book_author:
+        book_list.append([new_book_title, new_book_author])
+        st.success(f"Book '{new_book_title}' by {new_book_author} added to the list!")
 
+    # Display remove book form
+    opt4 = BookManagementForm().display_remove_form(book_list)
+    if opt4:
+        book_list = [book for book in book_list if book[0] != opt4]
+        st.success(f"Book '{opt4}' removed from the list!")
+        print('Book to remove: ' + opt4)
