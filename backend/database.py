@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, Session
+from datetime import date
 
 # define PostgreSQL connection
 DATABASE_URL = 'postgresql://reading_user:o7z8ZQX4yEi4_Gr@localhost/reading_tracker'
@@ -19,6 +20,7 @@ class Book(Base):
     title = Column(String, index=True)
     author = Column(String)
     start_date = Column(Date)
+    end_date = Column(Date)
     daily_goal = Column(String)
 
     # set up the relationship to reading progress
@@ -39,4 +41,32 @@ class ReadingProgress(Base):
 # creates the tables in the database
 Base.metadata.create_all(bind=engine)
 
+
+def add_book(session: Session, title: str, author: str, start_date: date, end_date: date = None, daily_goal: str =
+None):
+    new_book = Book(
+        title=title,
+        author=author,
+        start_date=start_date,
+        end_date=end_date,
+        daily_goal=daily_goal
+    )
+    session.add(new_book)
+    # commit the transaction to save the changes
+    session.commit()
+    # refresh the instance with the new ID from the database
+    session.refresh(new_book)
+    return new_book
+
+
+def add_reading_progress(session: Session, booksId: int, date: date, pages_read: int):
+    new_progress = ReadingProgress(
+        booksId=booksId,
+        date=date,
+        pages_read=pages_read
+    )
+    session.add(new_progress)
+    session.commit()
+    session.refresh(new_progress)
+    return new_progress
 

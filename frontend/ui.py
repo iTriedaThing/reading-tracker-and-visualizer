@@ -1,5 +1,12 @@
 import streamlit as st
 from datetime import date
+import sys
+from pathlib import Path
+
+# Add the root directory to the Python path
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
+from backend.database import SessionLocal, add_book, Book, add_reading_progress
 
 
 class ReadingInputForm:
@@ -38,6 +45,7 @@ class BookManagementForm:
         self.title = ''
         self.author = ''
         self.start_date = date.today()
+        self.end_date = None
 
     def display_add_form(self):
         st.text('Do you have a book to add?')
@@ -46,9 +54,12 @@ class BookManagementForm:
             self.title = st.text_input(label='title', label_visibility='hidden', placeholder='Title')
         with columns[1]:
             self.author = st.text_input(label='author', label_visibility='hidden', placeholder='Author')
+
+        self.start_date = st.date_input('Start Date', self.start_date)
+        self.end_date = st.date_input('End Date (optional)', self.end_date)
         if st.button('Add my book!'):
-            return self.title, self.author, self.start_date
-        return None, None, None
+            return self.title, self.author, self.start_date, self.end_date
+        return None, None, None, None
 
     @staticmethod
     def display_remove_form(books: list):
@@ -74,30 +85,50 @@ class ProgressVisualization:
 
 
 if __name__ == '__main__':
-    book_list = [
-        ["To Kill a Mockingbird", "Harper Lee"],
-        ["1984", "George Orwell"],
-        ["The Great Gatsby", "F. Scott Fitzgerald"],
-        ["Pride and Prejudice", "Jane Austen"],
-        ["Moby-Dick", "Herman Melville"]
-    ]
+    # initialize the local session
+    session = SessionLocal()
 
-    # Display reading input form
-    opt1, opt2, opt3 = ReadingInputForm(book_list).display()
-    if opt1 and opt2 and opt3:
-        print('Book title: ' + opt1)
-        print('Progress date: ' + str(opt2))
-        print('Pages read: ' + str(opt3))
+    # get the list of books from the database
+    book_list = session.query(Book).all()
 
-    # Display add book form
-    new_book_title, new_book_author, start_date = BookManagementForm().display_add_form()
+    # display the reading input form
+    reading_form = ReadingInputForm([(book.title, book.author) for book in book_list])
+    selected_book_title, progress_date, pages_read = reading_form.display()
+
+    if selected_book_title and progress_date and pages_read:
+        selected_book = session.query(Book).filter_by(title=selected_book_title).first()
+        if selected_book:
+            # add the reading progress to the database
+            new_progress = add_reading_progress(session, selected_book.booksId, progress_date, pages_read)
+            st.success(f"Reading progress on {new_progress.date} for '{selected_book.title}' added:"
+                       f" {new_progress.pages_read} pages read.")
+
+    # display the book add form
+    book_management_form = BookManagementForm()
+    new_book_title, new_book_author, start_date, end_date = book_management_form.display_add_form()
+
     if new_book_title and new_book_author:
-        book_list.append([new_book_title, new_book_author])
-        st.success(f"Book '{new_book_title}' by {new_book_author} added to the list!")
+        # add the new book to the database
+        new_book = add_book(session, new_book_title, new_book_author, start_date, end_date)
+        st.success(f"Book '{new_book.title}' by {new_book.author} added to the list!")
+        # refresh the book list after adding a new book
+        book_list = session.query(Book).all()
 
-    # Display remove book form
-    opt4 = BookManagementForm().display_remove_form(book_list)
-    if opt4:
-        book_list = [book for book in book_list if book[0] != opt4]
-        st.success(f"Book '{opt4}' removed from the list!")
-        print('Book to remove: ' + opt4)
+    # display remove book form
+    selected_book_to_remove = book_management_form.display_remove_form(
+        [(book.title, book.author) for book in book_list])
+
+    if selected_book_to_remove:
+        # find the book to remove by title and delete it
+        book_to_remove = session.query(Book).filter_by(title=selected_book_to_remove).first()
+        if book_to_remove:
+            session.delete(book_to_remove)
+            session.commit()
+            st.success(f"Book '{book_to_remove.title}' removed from the list!")
+            # refresh the book list after adding a new book
+            book_list = session.query(Book).all()
+
+    session.close()
+
+
+
