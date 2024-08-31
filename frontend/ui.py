@@ -6,7 +6,8 @@ from pathlib import Path
 # Add the root directory to the Python path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from backend.database import SessionLocal, add_book, Book, add_reading_progress
+from backend.database import SessionLocal, add_book, Book, add_reading_progress, fetch_reading_data
+from frontend.plots import HorizontalBarGraph
 
 
 class ReadingInputForm:
@@ -18,8 +19,6 @@ class ReadingInputForm:
         self.date_selection = 'Today'
 
     def display(self):
-        st.header("Ben's Reading Tracker")
-        st.subheader("An exercise in reclaiming a sense of direction or at least progress")
 
         book_titles = [book[0] for book in self.books]
         self.selected_book = st.selectbox('What book did you read today?', book_titles)
@@ -48,6 +47,9 @@ class BookManagementForm:
         self.end_date = None
 
     def display_add_form(self):
+        st.header("Ben's Reading Tracker")
+        st.subheader("An exercise in reclaiming a sense of direction or at least progress")
+
         st.text('Do you have a book to add?')
         columns = st.columns([4, 2])
         with columns[0]:
@@ -82,26 +84,18 @@ class ProgressVisualization:
 
     def display_graph(self, data):
         st.header('Reading progress over time: ')
+        bar_graph = HorizontalBarGraph()
+        figure = bar_graph.plot_reading_progress(data)
+        return figure
 
 
 if __name__ == '__main__':
     # initialize the local session
     session = SessionLocal()
+    df = fetch_reading_data(session)
 
     # get the list of books from the database
     book_list = session.query(Book).all()
-
-    # display the reading input form
-    reading_form = ReadingInputForm([(book.title, book.author) for book in book_list])
-    selected_book_title, progress_date, pages_read = reading_form.display()
-
-    if selected_book_title and progress_date and pages_read:
-        selected_book = session.query(Book).filter_by(title=selected_book_title).first()
-        if selected_book:
-            # add the reading progress to the database
-            new_progress = add_reading_progress(session, selected_book.booksId, progress_date, pages_read)
-            st.success(f"Reading progress on {new_progress.date} for '{selected_book.title}' added:"
-                       f" {new_progress.pages_read} pages read.")
 
     # display the book add form
     book_management_form = BookManagementForm()
@@ -113,6 +107,19 @@ if __name__ == '__main__':
         st.success(f"Book '{new_book.title}' by {new_book.author} added to the list!")
         # refresh the book list after adding a new book
         book_list = session.query(Book).all()
+
+    # display the reading input form
+    reading_form = ReadingInputForm([(book.title, book.author) for book in book_list])
+    selected_book_title, progress_date, pages_read = reading_form.display()
+
+    if selected_book_title and progress_date and pages_read:
+        selected_book = session.query(Book).filter_by(title=selected_book_title).first()
+        if selected_book:
+            book_list = session.query(Book).all()
+            # add the reading progress to the database
+            new_progress = add_reading_progress(session, selected_book.booksId, progress_date, pages_read)
+            st.success(f"Reading progress on {new_progress.date} for '{selected_book.title}' added:"
+                       f" {new_progress.pages_read} pages read.")
 
     # display remove book form
     selected_book_to_remove = book_management_form.display_remove_form(
@@ -127,6 +134,12 @@ if __name__ == '__main__':
             st.success(f"Book '{book_to_remove.title}' removed from the list!")
             # refresh the book list after adding a new book
             book_list = session.query(Book).all()
+
+    progress_vis = ProgressVisualization()
+
+    fig = progress_vis.display_graph(data=df)
+
+    st.pyplot(fig)
 
     session.close()
 

@@ -1,3 +1,4 @@
+import pandas as pd
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
@@ -69,4 +70,21 @@ def add_reading_progress(session: Session, booksId: int, date: date, pages_read:
     session.commit()
     session.refresh(new_progress)
     return new_progress
+
+def fetch_reading_data(session: Session):
+    # query the reading data
+    data = session.query(ReadingProgress, Book.title).join(Book).all()
+
+    # create a list of dictionaries with the reading data
+    records = []
+    for progress, title in data:
+        records.append({
+            'title': title,
+            'date': progress.date
+        })
+
+    # convert the data to a pandas DataFrame
+    df = pd.DataFrame(records)
+
+    return df
 
