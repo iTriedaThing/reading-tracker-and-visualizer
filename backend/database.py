@@ -71,6 +71,7 @@ def add_reading_progress(session: Session, booksId: int, date: date, pages_read:
     session.refresh(new_progress)
     return new_progress
 
+
 def fetch_reading_data(session: Session):
     # query the reading data
     data = session.query(ReadingProgress, Book.title).join(Book).all()
@@ -87,4 +88,13 @@ def fetch_reading_data(session: Session):
     df = pd.DataFrame(records)
 
     return df
+
+
+def remove_book(session: Session, book_title, book_author):
+    book_to_remove = session.query(Book).filter_by(title=book_title, author=book_author).first()
+    if book_to_remove:
+        session.delete(book_to_remove)
+        session.commit()
+        return True
+    return False
 
