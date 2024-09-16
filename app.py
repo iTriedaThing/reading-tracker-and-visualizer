@@ -25,26 +25,17 @@ def main():
     st.header("Ben's Reading Tracker")
     st.subheader("An exercise in reclaiming a sense of direction or at least progress")
 
-    book_manager = BookManagementForm()
-    reading_input = ReadingInputForm(book_list)
+    book_manager_form = BookManagementForm(book_list)
+    reading_input_form = ReadingInputForm(book_list)
 
-    book_input = reading_input.display()
+    book_input = reading_input_form.display_reading_input()
+    if book_input:
+        add_reading_progress(session, booksId=book_input[0], date=book_input[1],
+                             pages_read=book_input[2])
+
     with st.sidebar:
-        book_add = book_manager.display_add_form()
-        if book_add:
-            add_book(session, title=book_add[0], author=book_add[1], start_date=book_add[2],
-                     end_date=book_add[3], daily_goal=book_add[4])
+        book_manager = book_manager_form.display(session=session)
 
-            st.session_state['book_list'] = fetch_books(session)
-            st.success(f'{book_add[0]} was added to your reading list!')
-            sleep(.75)
-            st.rerun()
-
-        book_remove = book_manager.display_remove_form(book_list)
-        if book_remove:
-            print(book_remove)
-            remove_book(session, book_title=book_remove[0], book_author=book_remove[1])
-            st.rerun()
 
 
 

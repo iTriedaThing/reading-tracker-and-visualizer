@@ -1,4 +1,5 @@
 import sys
+import time
 from pathlib import Path
 import streamlit as st
 from datetime import date
@@ -6,7 +7,7 @@ from frontend.plots import HorizontalBarGraph
 from sqlalchemy.orm import sessionmaker
 
 # Add the root directory to the Python path
-from backend.database import SessionLocal, add_book, Book, add_reading_progress, fetch_reading_data
+from backend.database import SessionLocal, add_book, Book, add_reading_progress, fetch_reading_data, edit_book
 # sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 
@@ -26,10 +27,12 @@ class ReadingInputForm:
         self.pages_read = 0
         self.date_selection = 'Today'
 
-    def display(self):
+    def display_reading_input(self):
 
-        book_titles = [book.title for book in self.books]
-        self.selected_book = st.selectbox('What book did you read today?', book_titles)
+        book_options = {book.booksId: f'{book.title} ({book.author})' for book in self.books}
+        selected_option = st.selectbox('What book did you read today?', list(book_options.values()))
+
+        self.selected_book = [key for key, value in book_options.items() if value == selected_option][0]
         # establish the radio button collection for when I read
         self.date_selection = st.radio('When did you read?',
                                        options=['Today', 'Another day'])
@@ -48,25 +51,82 @@ class ReadingInputForm:
 
 
 class BookManagementForm:
-    def __init__(self):
-        self.title = ''
-        self.author = ''
-        self.start_date = date.today()
-        self.end_date = None
-        self.reading_goal = None
+    def __init__(self, books):
+        self.books = books
 
-    def display_add_form(self):
+    def display(self, session):
+        book_titles = [f'{book.title} by {book.author}' for book in self.books]
+        # st.session_state
 
-        st.header('Do you have a book to add?')
-        self.title = st.text_input(label='title', label_visibility='hidden', placeholder='Title')
-        self.author = st.text_input(label='author', label_visibility='hidden', placeholder='Author')
-        self.reading_goal = st.text_input(label='goal', label_visibility='hidden',
-                                          placeholder="What's your daily goal?")
-        self.start_date = st.date_input('Start Date', self.start_date)
-        self.end_date = st.date_input('End Date (optional)', self.end_date)
-        if st.button('Add my book!'):
-            return self.title, self.author, self.start_date, self.end_date, self.reading_goal
-        # return None, None, None, None, None
+        st.header('Manage Your Books')
+
+        with st.expander('Add a Book'):
+            title = st.text_input('Title')
+            author = st.text_input('Author')
+            daily_goal = st.text_input('daily_goal')
+            start_date = st.date_input('Start Date')
+            end_date = st.date_input('End Date')
+
+            if st.button('Add Book'):
+                if title and author:
+                    add_book(session, title, author, start_date, end_date, daily_goal)
+                    st.success(f'Book "{title}" was added to the reading list!')
+                    time.sleep(.75)
+                    st.rerun()
+                else:
+                    st.warning('Please enter at least a title and author.')
+
+        with st.expander('Remove a Book'):
+            selected_book = st.selectbox('Choose a book to remove',
+                                         ['Select a book...']+book_titles,
+                                         key='select_remove_book')
+
+            if selected_book == 'Select a book...':
+                st.session_state['confirming_delete'] = False
+            else:
+                st.session_state['confirming_delete'] = True
+
+            if st.session_state['confirming_delete']:
+                st.text(f'Are you sure you want to delete this book?')
+                col1, col2 = st.columns(2)
+                with col1:
+                    confirm_delete = st.button('Delete', key='confirm_delete')
+                with col2:
+                    cancel_delete = st.button('Cancel', key='cancel_delete')
+
+                if confirm_delete:
+                    pass
+                if cancel_delete:
+                    # st.session_state.cancel_delete = 'Select a book...'
+                    st.rerun()
+
+        with st.expander('Edit a Book'):
+            selected_book_to_edit = st.selectbox('Choose a book to edit',
+                                               ['Select a book...']+book_titles,
+                                               key='select_edit_book')
+            try:
+                selected_split = selected_book_to_edit.split(' by ')
+                selected_book_title = selected_split[0]
+                selected_book_author = selected_split[1]
+                if selected_book_to_edit:
+                    book = session.query(Book).filter_by(title=selected_book_title,
+                                                         author=selected_book_author).first()
+
+                    new_title = st.text_input('New Title', value=book.title)
+                    new_author = st.text_input('New Author', value=book.author)
+                    new_start_date = st.date_input('New Start Date', value=book.start_date)
+                    new_end_date = st.date_input('New End Date', value=book.end_date)
+                    new_daily_goal = st.text_input('New Daily Goal', value=book.daily_goal)
+
+                    if st.button('Update Book'):
+                        edit_book(session, selected_book_title, selected_book_author, new_title,
+                                  new_author, new_start_date, new_daily_goal, new_end_date)
+                        st.success(f'Book "{new_title}" updated!')
+                        time.sleep(.75)
+                        st.rerun()
+            except IndexError:
+                pass
+
 
     @staticmethod
     def display_remove_form(books: list):
@@ -189,7 +249,7 @@ if __name__ == '__main__':
 
     # display the reading input form
     reading_form = ReadingInputForm([(book.title, book.author) for book in book_list])
-    selected_book_title, progress_date, pages_read = reading_form.display()
+    selected_book_title, progress_date, pages_read = reading_form.display_reading_input()
 
     if selected_book_title and progress_date and pages_read:
         selected_book = session.query(Book).filter_by(title=selected_book_title).first()

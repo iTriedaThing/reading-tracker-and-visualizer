@@ -72,6 +72,19 @@ def add_reading_progress(session: Session, booksId: int, date: date, pages_read:
     return new_progress
 
 
+def edit_book(session: Session, old_title, old_author, new_title, new_author,
+              new_start_date, new_daily_goal, new_end_date):
+    book_to_edit = session.query(Book).filter_by(title=old_title, author=old_author).first()
+    if book_to_edit:
+        book_to_edit.title = new_title
+        book_to_edit.author = new_author
+        book_to_edit.start_date = new_start_date
+        book_to_edit.end_date = new_end_date
+        book_to_edit.daily_goal = new_daily_goal
+        session.commit()
+
+
+
 def fetch_reading_data(session: Session):
     # query the reading data
     data = session.query(ReadingProgress, Book.title).join(Book).all()
