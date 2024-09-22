@@ -1,6 +1,8 @@
 import sys
 import time
 from pathlib import Path
+
+import pandas as pd
 import streamlit as st
 from datetime import date
 from frontend.plots import HorizontalBarGraph
@@ -30,7 +32,7 @@ class ReadingInputForm:
         self.pages_read = 0
         self.date_selection = 'Today'
 
-    def display_reading_input(self):
+    def display(self, session):
 
         book_options = {book.booksId: f'{book.title} ({book.author})' for book in self.books}
         selected_option = st.selectbox('What book did you read today?', list(book_options.values()))
@@ -38,7 +40,8 @@ class ReadingInputForm:
         self.selected_book = [key for key, value in book_options.items() if value == selected_option][0]
         # establish the radio button collection for when I read
         self.date_selection = st.radio('When did you read?',
-                                       options=['Today', 'Another day'])
+                                       options=['Today', 'Another day',],
+                                       horizontal=True)
 
         if self.date_selection == 'Today':
             self.progress_date = date.today()
@@ -49,7 +52,8 @@ class ReadingInputForm:
 
         st.text('Did you finish doing some reading?')
         if st.button('Yes!'):
-            return self.selected_book, self.progress_date, self.pages_read
+            add_reading_progress(session, self.selected_book, self.progress_date, self.pages_read)
+            st.rerun()
         # return None, None, None
 
 
@@ -96,7 +100,7 @@ class BookManagementForm:
                 author = st.text_input('Author')
                 daily_goal = st.text_input('daily_goal')
                 start_date = st.date_input('Start Date')
-                end_date = st.date_input('End Date')
+                end_date = st.date_input('End Date', value=None)
 
                 if st.button('Add Book'):
                     if title and author:
@@ -104,7 +108,6 @@ class BookManagementForm:
                         st.success(f'Book "{title}" was added to the reading list!')
                         time.sleep(1)
                         self.reset_add_selectbox()
-                        print(st.session_state['add_expander'])
                         st.rerun()
                     else:
                         st.warning('Please enter at least a title and author.')
@@ -161,7 +164,7 @@ class BookManagementForm:
                     st.session_state['confirming_delete'] = True
 
                 if st.session_state['confirming_delete']:
-                    st.text(f'Are you sure you want to delete this book?')
+                    st.text(f'Are you sure you want to delete?')
                     col1, col2 = st.columns(2)
                     with col1:
                         confirm_delete = st.button('Delete', key='confirm_delete')
@@ -191,17 +194,27 @@ class BookManagementForm:
 
 
 class ProgressVisualization:
-    def __init__(self):
-        self.book_id = None
+    def __init__(self, books):
+        self.books = books
 
     def display_grid(self, data):
         st.header('Your reading progress:')
 
-    def display_graph(self, data):
+    def display_graph(self):
         st.header('Reading progress over time: ')
         bar_graph = HorizontalBarGraph()
-        figure = bar_graph.plot_reading_progress(data)
+        figure = bar_graph.plot_reading_progress(self.books)
         return figure
+
+    def display_table(self):
+        """
+        takes the class level data frame and converts it into a table
+
+        :return:
+        """
+        st.header("Your reading progress:")
+        with st.expander(label='Show your progress', expanded=False):
+            st.dataframe(self.books, hide_index=True)
 
 
 if __name__ == '__main__':
@@ -250,7 +263,7 @@ if __name__ == '__main__':
 
     # display the reading input form
     reading_form = ReadingInputForm([(book.title, book.author) for book in book_list])
-    selected_book_title, progress_date, pages_read = reading_form.display_reading_input()
+    selected_book_title, progress_date, pages_read = reading_form.display()
 
     if selected_book_title and progress_date and pages_read:
         selected_book = session.query(Book).filter_by(title=selected_book_title).first()

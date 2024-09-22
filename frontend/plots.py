@@ -10,7 +10,7 @@ class HorizontalBarGraph:
     def plot_reading_progress(df: pd.DataFrame):
         # mark that a book was read on a given date
         df['read'] = 1
-        pivot_df = df.pivot_table(index='date', columns='title', values='read', fill_value=0)
+        pivot_df = df.pivot_table(index='Date', columns='Title', values='read', fill_value=0)
 
         # create a binary heatmap-style horizontal bar chart
         fig, ax = plt.subplots(figsize=(10, len(pivot_df)))
@@ -32,7 +32,7 @@ class HorizontalBarGraph:
         plt.ylabel('Book Title')
         plt.title('Reading Progress by Date')
 
-        # add aa color bar to explain the colors
-        plt.colorbar(cax, ax=ax, orientation='vertical', label='Read (1=Yes, 0=No)')
+        # add a color bar to explain the colors
+        # plt.colorbar(cax, ax=ax, orientation='vertical', label='Read (1=Yes, 0=No)')
 
         return fig

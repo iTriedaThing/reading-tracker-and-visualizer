@@ -89,12 +89,15 @@ def fetch_reading_data(session: Session):
     # query the reading data
     data = session.query(ReadingProgress, Book.title).join(Book).all()
 
+    print(data)
+
     # create a list of dictionaries with the reading data
     records = []
     for progress, title in data:
         records.append({
-            'title': title,
-            'date': progress.date
+            'Title': title,
+            'Date': progress.date,
+            'Pages Read': progress.pages_read
         })
 
     # convert the data to a pandas DataFrame
