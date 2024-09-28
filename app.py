@@ -16,6 +16,9 @@ def main():
     if 'book_list' not in st.session_state:
         st.session_state['book_list'] = fetch_books(session)
 
+    if 'selected_color' not in st.session_state:
+        st.session_state['selected_color'] = 'Blues'
+
     book_df = fetch_reading_data(session)
 
     # get the list of books from the database
@@ -32,18 +35,18 @@ def main():
 
     with st.sidebar:
         book_manager = book_manager_form.display(session=session)
+        colormap = progress_vis.choose_graph_color()
+
 
     book_inputter = reading_input_form.display(session=session)
 
     # display the progress visualization
     progress_vis.display_table()
 
-    graph = progress_vis.display_graph()
+    graph = progress_vis.display_graph(colormap)
     st.pyplot(graph)
 
     session.close()
-    # print(f'add: {book_add}')
-    # print(f'input: {book_input}')
 
 
 if __name__ == '__main__':

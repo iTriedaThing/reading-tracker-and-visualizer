@@ -1,12 +1,9 @@
 import sys
 import time
-from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 from datetime import date
 from frontend.plots import HorizontalBarGraph
-from sqlalchemy.orm import sessionmaker
 
 # Add the root directory to the Python path
 from backend.database import (SessionLocal, add_book, Book, add_reading_progress, fetch_reading_data, edit_book,
@@ -200,10 +197,10 @@ class ProgressVisualization:
     def display_grid(self, data):
         st.header('Your reading progress:')
 
-    def display_graph(self):
+    def display_graph(self, colormap):
         st.header('Reading progress over time: ')
         bar_graph = HorizontalBarGraph()
-        figure = bar_graph.plot_reading_progress(self.books)
+        figure = bar_graph.plot_reading_progress(self.books, colormap=colormap)
         return figure
 
     def display_table(self):
@@ -216,6 +213,18 @@ class ProgressVisualization:
         with st.expander(label='Show your progress', expanded=False):
             st.dataframe(self.books, hide_index=True)
 
+    def choose_graph_color(self):
+        colormaps = ['Blues', 'Greens', 'Reds', 'Purples', 'Oranges', 'Greys',]
+
+        selected_color = st.selectbox('Choose a chart color:', colormaps,
+                                      index=colormaps.index(st.session_state['selected_color']))
+
+        st.session_state['selected_color'] = selected_color
+
+        return selected_color
+
+
+
 
 if __name__ == '__main__':
     # initialize the local session
@@ -227,57 +236,4 @@ if __name__ == '__main__':
 
     st.header("Ben's Reading Tracker")
     st.subheader("An exercise in reclaiming a sense of direction or at least progress")
-    helper_functions = HelperFunctions(session)
 
-    with st.sidebar:
-        # display the book add form
-        book_management_form = BookManagementForm()
-        new_book_title, new_book_author, start_date, end_date, daily_goal = book_management_form.display_add_form()
-
-        if new_book_title and new_book_author:
-            # add the new book to the database
-            new_book = add_book(session, new_book_title, new_book_author, start_date, end_date, daily_goal)
-            st.success(f"Book '{new_book.title}' by {new_book.author} added to the list!")
-            # refresh the book list after adding a new book
-            book_list = session.query(Book).all()
-
-        # display remove book form
-        selected_book_title, selected_book_author, confirmation = book_management_form.display_remove_form(book_list)
-        print(selected_book_title, selected_book_author, confirmation)
-
-        if selected_book_title and confirmation == 'Yes':
-            if helper_functions.remove_book(selected_book_title, selected_book_author):
-                st.success(f"'{selected_book_title}' by {selected_book_author} has been removed!")
-                # refresh the book list after adding a new book
-                book_list = session.query(Book).all()
-                st.session_state['confirming_delete'] = False
-            else:
-                st.error('Error removing the book.')
-        elif confirmation == 'No':
-            st.success('Deletion canceled.')
-            st.session_state['confirming_delete'] = False
-
-    # display the reading progress form
-    progress_form = ReadingProgressForm([(book.title, book.author, book.daily_goal) for book in book_list])
-    progress_form.display()
-
-    # display the reading input form
-    reading_form = ReadingInputForm([(book.title, book.author) for book in book_list])
-    selected_book_title, progress_date, pages_read = reading_form.display()
-
-    if selected_book_title and progress_date and pages_read:
-        selected_book = session.query(Book).filter_by(title=selected_book_title).first()
-        if selected_book:
-            book_list = session.query(Book).all()
-            # add the reading progress to the database
-            new_progress = add_reading_progress(session, selected_book.booksId, progress_date, pages_read)
-            st.success(f"Reading progress on {new_progress.date} for '{selected_book.title}' added:"
-                       f" {new_progress.pages_read} pages read.")
-
-    progress_vis = ProgressVisualization()
-
-    fig = progress_vis.display_graph(data=df)
-
-    st.pyplot(fig)
-
-    session.close()
