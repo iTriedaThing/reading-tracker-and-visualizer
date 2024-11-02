@@ -18,7 +18,11 @@ class ReadingProgressForm:
         self.books = books
 
     def display(self):
-        st.table(data=self.books)
+        if not self.books:
+            st.info('No books available. Please add a book first.')
+            return
+        else:
+            st.table(data=self.books)
 
 
 class ReadingInputForm:
@@ -30,6 +34,9 @@ class ReadingInputForm:
         self.date_selection = 'Today'
 
     def display(self, session):
+        if not self.books:
+            st.info('No books available. Please add a book first.')
+            return
 
         book_options = {book.booksId: f'{book.title} ({book.author})' for book in self.books}
         selected_option = st.selectbox('What book did you read today?', list(book_options.values()))
@@ -95,7 +102,7 @@ class BookManagementForm:
             with st.expander('Add a Book', expanded=True):
                 title = st.text_input('Title')
                 author = st.text_input('Author')
-                daily_goal = st.text_input('daily_goal')
+                daily_goal = st.text_input('Daily Goal')
                 start_date = st.date_input('Start Date')
                 end_date = st.date_input('End Date', value=None)
 

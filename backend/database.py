@@ -89,8 +89,6 @@ def fetch_reading_data(session: Session):
     # query the reading data
     data = session.query(ReadingProgress, Book.title).join(Book).all()
 
-    print(data)
-
     # create a list of dictionaries with the reading data
     records = []
     for progress, title in data:

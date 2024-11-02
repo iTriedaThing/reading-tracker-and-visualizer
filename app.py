@@ -37,7 +37,6 @@ def main():
         book_manager = book_manager_form.display(session=session)
         colormap = progress_vis.choose_graph_color()
 
-
     book_inputter = reading_input_form.display(session=session)
 
     # display the progress visualization
