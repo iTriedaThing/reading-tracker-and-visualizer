@@ -7,8 +7,10 @@ from sqlalchemy.orm import sessionmaker, relationship, Session
 from datetime import date
 import os
 
-# define PostgreSQL connection
+# Retrieve and modify the database URL
 DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # set up the sqlalchemy engine
 engine = create_engine(DATABASE_URL)
