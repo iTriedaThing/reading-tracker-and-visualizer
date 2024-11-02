@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
@@ -5,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, relationship, Session
 from datetime import date
 
 # define PostgreSQL connection
-DATABASE_URL = 'postgresql://reading_user:o7z8ZQX4yEi4_Gr@localhost/reading_tracker'
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # set up the sqlalchemy engine
 engine = create_engine(DATABASE_URL)
