@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, Session
 from datetime import date
+import os
 
 # define PostgreSQL connection
 DATABASE_URL = os.environ.get("DATABASE_URL")
