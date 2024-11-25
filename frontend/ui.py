@@ -4,8 +4,6 @@ import time
 import streamlit as st
 from datetime import date
 from frontend.plots import HorizontalBarGraph
-
-# Add the root directory to the Python path
 from backend.database import (SessionLocal, add_book, Book, add_reading_progress, fetch_reading_data, edit_book,
                               remove_book)
 
@@ -71,11 +69,11 @@ class ReadingInputForm:
         Args:
             books (list): A list of book objects.
         """
-        self.books = books  # Store the list of books as an instance attribute.
+        self.books = books
         self.selected_book = None  # To store the selected book ID.
-        self.progress_date = date.today()  # Default progress date is today.
-        self.pages_read = 0  # Default number of pages read is 0.
-        self.date_selection = 'Today'  # Default selection for date input is 'Today'.
+        self.progress_date = date.today()
+        self.pages_read = 0
+        self.date_selection = 'Today'
 
     def display(self, session):
         """
@@ -93,28 +91,28 @@ class ReadingInputForm:
         """
         # Check if there are books available to display.
         if not self.books:
-            st.info('No books available. Please add a book first.')  # Display info message if no books.
-            return  # Exit early if no books to show.
+            st.info('No books available. Please add a book first.')
+            return
 
         # Create a dictionary of book options with bookId as keys and formatted strings as values.
         book_options = {book.booksId: f'{book.title} ({book.author})' for book in self.books}
 
-        # Display a dropdown (selectbox) to choose a book.
+        # Display a dropdown to choose a book.
         selected_option = st.selectbox('What book did you read today?', list(book_options.values()))
 
         # Find the ID of the selected book based on the user's selection.
         self.selected_book = [key for key, value in book_options.items() if value == selected_option][0]
 
-        # Display a radio button group to select the reading date (Today or Another day).
+        # Display a radio button group to select the reading date
         self.date_selection = st.radio('When did you read?',
                                        options=['Today', 'Another day'],  # Two options for date input.
-                                       horizontal=True)  # Display options horizontally.
+                                       horizontal=True
+                                       )
 
         # Determine the reading date based on the user's selection.
         if self.date_selection == 'Today':
-            self.progress_date = date.today()  # Set to today's date if 'Today' is selected.
+            self.progress_date = date.today()
         else:
-            # Allow the user to pick a date if 'Another day' is selected.
             self.progress_date = st.date_input('Select date', self.progress_date)
 
         # Allow the user to input the number of pages read.
@@ -147,39 +145,43 @@ class BookManagementForm:
         Args:
             books (list): The current collection of books to be managed.
         """
-        self.books = books  # Store the list of books as an instance attribute.
+        self.books = books
 
-    def reset_add_selectbox(self):
+    @staticmethod
+    def reset_add_selectbox():
         """
         Resets the 'Add' expander UI state in the Streamlit session state.
 
         This function is used to collapse or hide the 'Add Book' expander UI element.
         """
-        st.session_state['add_expander'] = False  # Set the 'Add' expander state to False.
+        st.session_state['add_expander'] = False
 
-    def reset_remove_selectbox(self):
+    @staticmethod
+    def reset_remove_selectbox():
         """
         Resets the 'Remove' expander UI state in the Streamlit session state.
 
         This function is used to collapse or hide the 'Remove Book' expander UI element.
         """
-        st.session_state['remove_expander'] = False  # Set the 'Remove' expander state to False.
+        st.session_state['remove_expander'] = False
 
-    def cancel_remove_selectbox(self):
+    @staticmethod
+    def cancel_remove_selectbox():
         """
         Resets the book selection dropdown in the 'Remove Book' UI to its default state.
 
         This ensures that no book remains selected after canceling the remove operation.
         """
-        st.session_state['select_remove_book'] = 'Select a book...'  # Reset the selection to default text.
+        st.session_state['select_remove_book'] = 'Select a book...'
 
-    def reset_edit_selectbox(self):
+    @staticmethod
+    def reset_edit_selectbox():
         """
         Resets the 'Edit' expander UI state in the Streamlit session state.
 
         This function is used to collapse or hide the 'Edit Book' expander UI element.
         """
-        st.session_state['edit_expander'] = False  # Set the 'Edit' expander state to False.
+        st.session_state['edit_expander'] = False
 
     def update_book(self, session, selected_book_title, selected_book_author, new_title,
                     new_author, new_start_date, new_daily_goal, new_end_date):
@@ -193,7 +195,7 @@ class BookManagementForm:
             new_title (str): The new title for the book.
             new_author (str): The new author for the book.
             new_start_date (date): The new start date for the book.
-            new_daily_goal (int): The new daily reading goal for the book.
+            new_daily_goal (str): The new daily reading goal for the book.
             new_end_date (date): The new end date for the book.
 
         Returns:
@@ -218,155 +220,155 @@ class BookManagementForm:
         Returns:
             None
         """
-        # Generate a list of book titles and authors for dropdown options.
-        book_titles = [f'{book.title} by {book.author}' for book in self.books]
+        if self.books:
+            # Generate a list of book titles and authors for dropdown options.
+            book_titles = [f'{book.title} by {book.author}' for book in self.books]
 
-        # Ensure necessary session state variables are initialized.
-        if 'add_expander' not in st.session_state:
-            st.session_state['add_expander'] = False
-        if 'edit_expander' not in st.session_state:
-            st.session_state['edit_expander'] = False
-        if 'select_edit_book' not in st.session_state:
-            st.session_state['select_edit_book'] = 'Select a book...'
-        if 'remove_expander' not in st.session_state:
-            st.session_state['remove_expander'] = False
+            # Ensure necessary session state variables are initialized.
+            if 'add_expander' not in st.session_state:
+                st.session_state['add_expander'] = False
+            if 'edit_expander' not in st.session_state:
+                st.session_state['edit_expander'] = False
+            if 'select_edit_book' not in st.session_state:
+                st.session_state['select_edit_book'] = 'Select a book...'
+            if 'remove_expander' not in st.session_state:
+                st.session_state['remove_expander'] = False
 
-        # Main section header.
-        st.header('Manage Your Books')
+            # Main section header.
+            st.header('Manage Your Books')
 
-        # ---------- Add a Book Section ----------
-        if st.session_state['add_expander']:
-            with st.expander('Add a Book', expanded=True):
-                # Inputs for adding a book.
-                title = st.text_input('Title')
-                author = st.text_input('Author')
-                daily_goal = st.text_input('Daily Goal')
-                start_date = st.date_input('Start Date')
-                end_date = st.date_input('End Date', value=None)
+            # ---------- Add a Book Section ----------
+            if st.session_state['add_expander']:
+                with st.expander('Add a Book', expanded=True):
+                    # Inputs for adding a book.
+                    title = st.text_input('Title')
+                    author = st.text_input('Author')
+                    daily_goal = st.text_input('Daily Goal')
+                    start_date = st.date_input('Start Date')
+                    end_date = st.date_input('End Date', value=None)
 
-                if st.button('Add Book'):
-                    if title and author:
-                        # Add the book to the database using a helper function.
-                        add_book(session, title, author, start_date, end_date, daily_goal)
-                        st.success(f'Book "{title}" was added to the reading list!')
-                        time.sleep(1)  # Brief delay for user feedback.
-                        self.reset_add_selectbox()  # Reset the 'Add' expander state.
-                        st.rerun()  # Refresh the app to reflect changes.
-                    else:
-                        # Warn the user if mandatory fields are missing.
-                        st.warning('Please enter at least a title and author.')
-        elif st.button('Add a Book'):
-            # Expand the 'Add a Book' section when the button is clicked.
-            st.session_state['add_expander'] = True
-            st.rerun()
+                    if st.button('Add Book'):
+                        if title and author:
+                            # Add the book to the database using a helper function.
+                            add_book(session, title, author, start_date, end_date, daily_goal)
+                            st.success(f'Book "{title}" was added to the reading list!')
+                            time.sleep(1)  # Brief delay for user experience.
+                            self.reset_add_selectbox()
+                            st.rerun()
+                        else:
+                            # Warn the user if mandatory fields are missing.
+                            st.warning('Please enter at least a title and author.')
+            elif st.button('Add a Book'):
+                # Expand the 'Add a Book' section when the button is clicked.
+                st.session_state['add_expander'] = True
+                st.rerun()
 
-        # ---------- Edit a Book Section ----------
-        if st.session_state['edit_expander']:
-            with st.expander('Edit a Book', expanded=st.session_state['edit_expander']):
-                # Dropdown for selecting a book to edit.
-                selected_book_to_edit = st.selectbox(
-                    'Choose a book to edit',
-                    ['Select a book...'] + book_titles,
-                    key='select_edit_book'
-                )
-                try:
-                    # Split the selected book string to extract title and author.
-                    selected_split = selected_book_to_edit.split(' by ')
-                    selected_book_title = selected_split[0]
-                    selected_book_author = selected_split[1]
-
-                    if selected_book_to_edit:
-                        # Query the selected book from the database.
-                        book = session.query(Book).filter_by(
-                            title=selected_book_title,
-                            author=selected_book_author
-                        ).first()
-
-                        # Inputs for updating book details.
-                        new_title = st.text_input('New Title', value=book.title)
-                        new_author = st.text_input('New Author', value=book.author)
-                        new_start_date = st.date_input('New Start Date', value=book.start_date)
-                        new_end_date = st.date_input('New End Date', value=book.end_date)
-                        new_daily_goal = st.text_input('New Daily Goal', value=book.daily_goal)
-
-                        if st.button('Update Book'):
-                            # Update the book in the database.
-                            self.update_book(
-                                session, selected_book_title, selected_book_author,
-                                new_title, new_author, new_start_date, new_daily_goal, new_end_date
-                            )
-                            st.success(f'{new_title} has been updated!')
-                            time.sleep(1)  # Brief delay for user feedback.
-                            st.rerun()  # Refresh the app to reflect changes.
-                except IndexError:
-                    # Handle cases where no valid book is selected.
-                    pass
-        elif st.button('Edit a Book'):
-            # Expand the 'Edit a Book' section when the button is clicked.
-            st.session_state['edit_expander'] = True
-            st.session_state['select_edit_book'] = 'Select a book...'
-            st.rerun()
-
-        # ---------- Remove a Book Section ----------
-        if st.session_state['remove_expander']:
-            with st.expander('Remove a Book', expanded=True):
-                # Initialize session state variables for remove operations.
-                if 'select_remove_book' not in st.session_state:
-                    st.session_state['select_remove_book'] = 'Select a book...'
-                    st.session_state['confirming_delete'] = False
-
-                # Dropdown for selecting a book to remove.
-                selected_book = st.selectbox(
-                    'Choose a book to remove',
-                    ['Select a book...'] + book_titles,
-                    key='select_remove_book'
-                )
-
-                # Determine whether a book is selected for removal.
-                if selected_book == 'Select a book...':
-                    st.session_state['confirming_delete'] = False
-                else:
-                    st.session_state['confirming_delete'] = True
-
-                if st.session_state['confirming_delete']:
-                    # Display confirmation prompt.
-                    st.text(f'Are you sure you want to delete?')
-                    col1, col2 = st.columns(2)
-
-                    with col1:
-                        # Confirm delete button.
-                        confirm_delete = st.button('Delete', key='confirm_delete')
-                    with col2:
-                        # Cancel delete button with associated action.
-                        cancel_delete = st.button(
-                            'Cancel',
-                            key='cancel_delete',
-                            on_click=self.cancel_remove_selectbox
-                        )
-
-                    if confirm_delete:
-                        # Extract title and author from the selected book.
-                        selected_split = selected_book.split(' by ')
+            # ---------- Edit a Book Section ----------
+            if st.session_state['edit_expander']:
+                with st.expander('Edit a Book', expanded=st.session_state['edit_expander']):
+                    # Dropdown for selecting a book to edit.
+                    selected_book_to_edit = st.selectbox(
+                        'Choose a book to edit',
+                        ['Select a book...'] + book_titles,
+                        key='select_edit_book'
+                    )
+                    try:
+                        # Split the selected book string to extract title and author.
+                        selected_split = selected_book_to_edit.split(' by ')
                         selected_book_title = selected_split[0]
                         selected_book_author = selected_split[1]
 
-                        # Remove the book from the database.
-                        remove_book(session, selected_book_title, selected_book_author)
-                        st.success(f'{selected_book} has been removed!')
-                        time.sleep(1)  # Brief delay for user feedback.
-                        self.reset_remove_selectbox()  # Reset the 'Remove' expander state.
-                        st.rerun()  # Refresh the app to reflect changes.
+                        if selected_book_to_edit:
+                            # Query the selected book from the database.
+                            book = session.query(Book).filter_by(
+                                title=selected_book_title,
+                                author=selected_book_author).first()
 
-                    if cancel_delete:
-                        # Reset session state for cancel action.
+                            # Inputs for updating book details.
+                            new_title = st.text_input('New Title', value=book.title)
+                            new_author = st.text_input('New Author', value=book.author)
+                            new_start_date = st.date_input('New Start Date', value=book.start_date)
+                            new_end_date = st.date_input('New End Date', value=book.end_date)
+                            new_daily_goal = st.text_input('New Daily Goal', value=book.daily_goal)
+
+                            if st.button('Update Book'):
+                                # Update the book in the database.
+                                self.update_book(
+                                    session, selected_book_title, selected_book_author,
+                                    new_title, new_author, new_start_date, new_daily_goal, new_end_date
+                                )
+                                st.success(f'{new_title} has been updated!')
+                                time.sleep(1)
+                                st.rerun()
+                    except IndexError:
+                        # Pass cases where no valid book is selected.
+                        pass
+            elif st.button('Edit a Book'):
+                # Expand the 'Edit a Book' section when the button is clicked.
+                st.session_state['edit_expander'] = True
+                st.session_state['select_edit_book'] = 'Select a book...'
+                st.rerun()
+
+            # ---------- Remove a Book Section ----------
+            if st.session_state['remove_expander']:
+                with st.expander('Remove a Book', expanded=True):
+                    if 'select_remove_book' not in st.session_state:
                         st.session_state['select_remove_book'] = 'Select a book...'
                         st.session_state['confirming_delete'] = False
-                        st.rerun()
-        elif st.button('Remove a Book'):
-            # Expand the 'Remove a Book' section when the button is clicked.
-            st.session_state['remove_expander'] = True
-            st.session_state['select_remove_book'] = 'Select a book...'
-            st.rerun()
+
+                    # Dropdown for selecting a book to remove.
+                    selected_book = st.selectbox(
+                        'Choose a book to remove',
+                        ['Select a book...'] + book_titles,
+                        key='select_remove_book'
+                    )
+
+                    # Determine whether a book is selected for removal.
+                    if selected_book == 'Select a book...':
+                        st.session_state['confirming_delete'] = False
+                    else:
+                        st.session_state['confirming_delete'] = True
+
+                    if st.session_state['confirming_delete']:
+                        # Display confirmation prompt.
+                        st.text(f'Are you sure you want to delete?')
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            confirm_delete = st.button('Delete', key='confirm_delete')
+                        with col2:
+                            cancel_delete = st.button(
+                                'Cancel',
+                                key='cancel_delete',
+                                on_click=self.cancel_remove_selectbox
+                            )
+
+                        if confirm_delete:
+                            # Extract title and author from the selected book.
+                            selected_split = selected_book.split(' by ')
+                            selected_book_title = selected_split[0]
+                            selected_book_author = selected_split[1]
+
+                            # Remove the book from the database.
+                            remove_book(session, selected_book_title, selected_book_author)
+                            st.success(f'{selected_book} has been removed!')
+                            time.sleep(1)
+                            self.reset_remove_selectbox()
+                            st.rerun()
+
+                        if cancel_delete:
+                            # Reset session state for cancel action.
+                            st.session_state['select_remove_book'] = 'Select a book...'
+                            st.session_state['confirming_delete'] = False
+                            st.rerun()
+            elif st.button('Remove a Book'):
+                # Expand the 'Remove a Book' section when the button is clicked.
+                st.session_state['remove_expander'] = True
+                st.session_state['select_remove_book'] = 'Select a book...'
+                st.rerun()
+        else:
+            st.text('There are no books to manage.')
+
 
 class ProgressVisualization:
     """
@@ -395,7 +397,7 @@ class ProgressVisualization:
         Returns:
             None
         """
-        st.header('Your reading progress:')  # Display the header for the grid.
+        st.header('Your reading progress:')
 
     def display_graph(self, colormap):
         """
@@ -407,7 +409,7 @@ class ProgressVisualization:
         Returns:
             matplotlib.figure.Figure: The generated bar graph figure.
         """
-        st.header('Reading progress over time: ')  # Display the header for the graph.
+        st.header('Reading progress over time: ')
 
         # Instantiate a HorizontalBarGraph object for plotting.
         bar_graph = HorizontalBarGraph()
@@ -415,7 +417,7 @@ class ProgressVisualization:
         # Generate the graph using the books data and selected colormap.
         figure = bar_graph.plot_reading_progress(self.books, colormap=colormap)
 
-        return figure  # Return the graph figure for further use or display.
+        return figure
 
     def display_table(self):
         """
@@ -426,13 +428,14 @@ class ProgressVisualization:
         Returns:
             None
         """
-        st.header("Your reading progress:")  # Display the header for the table.
+        st.header("Your reading progress:")
 
         # Use an expander to show or hide the progress table.
         with st.expander(label='Show your progress', expanded=False):
-            st.dataframe(self.books, hide_index=True)  # Display the books data as a Streamlit dataframe.
+            st.dataframe(self.books, hide_index=True)
 
-    def choose_graph_color(self):
+    @staticmethod
+    def choose_graph_color():
         """
         Allows the user to select a color scheme for the graph.
 
@@ -451,19 +454,18 @@ class ProgressVisualization:
             index=colormaps.index(st.session_state['selected_color'])
         )
 
-        # Update the session state with the newly selected colormap.
         st.session_state['selected_color'] = selected_color
 
-        return selected_color  # Return the selected colormap.a
+        return selected_color
 
 
 if __name__ == '__main__':
     # initialize the local session
-    session = SessionLocal()
-    df = fetch_reading_data(session)
+    session_main = SessionLocal()
+    df = fetch_reading_data(session_main)
 
     # get the list of books from the database
-    book_list = session.query(Book).all()
+    book_list = session_main.query(Book).all()
 
     st.header("Ben's Reading Tracker")
     st.subheader("An exercise in reclaiming a sense of direction or at least progress")
