@@ -3,10 +3,9 @@ import os  # Module for interacting with the operating system
 import pandas as pd  # Pandas for data manipulation
 from sqlalchemy import create_engine, Column, Integer, String, Date, ForeignKey  # Core SQLAlchemy components
 from sqlalchemy.ext.declarative import declarative_base  # Base class for ORM models
-from sqlalchemy.orm import sessionmaker, relationship, Session  # ORM components, including Session
+from sqlalchemy.orm import sessionmaker, relationship, Session  # ORM components
 from datetime import date  # Module for handling dates
 
-import os  # Duplicate import of `os` is retained exactly as in input
 
 # Retrieve and modify the database URL from environment variables
 DATABASE_URL = os.environ.get("DATABASE_URL")  # Fetch the database URL from environment
@@ -15,7 +14,7 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # Set up the SQLAlchemy engine for database interaction
-engine = create_engine(DATABASE_URL)  # Connect to the database using the modified URL
+engine = create_engine(DATABASE_URL)
 
 # Configure a session factory for database transactions
 # - autocommit=False: Transactions must be explicitly committed
@@ -43,12 +42,12 @@ class Book(Base):
     __tablename__ = 'books'  # Define the name of the table in the database
 
     # Define the columns for the `books` table
-    booksId = Column(Integer, primary_key=True, index=True)  # Primary key column
-    title = Column(String, index=True)  # Title of the book (indexed for faster queries)
-    author = Column(String)  # Author of the book
-    start_date = Column(Date)  # Start date of reading the book
-    end_date = Column(Date)  # End date of reading the book
-    daily_goal = Column(String)  # Daily reading goal for the book
+    booksId = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    author = Column(String)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    daily_goal = Column(String)
 
     # Define a one-to-many relationship with the `ReadingProgress` table
     reading_progress = relationship('ReadingProgress', back_populates='book')
@@ -98,7 +97,6 @@ def add_book(session: Session, title: str, author: str, start_date: date, end_da
     Returns:
         Book: The newly added book instance.
     """
-    # Create a new Book object with the provided details.
     new_book = Book(
         title=title,
         author=author,
@@ -106,16 +104,13 @@ def add_book(session: Session, title: str, author: str, start_date: date, end_da
         end_date=end_date,
         daily_goal=daily_goal
     )
-    # Add the new book to the database session.
     session.add(new_book)
 
-    # Commit the transaction to save the new book to the database.
     session.commit()
 
-    # Refresh the new_book instance to load the generated ID from the database.
     session.refresh(new_book)
 
-    return new_book  # Return the newly added book instance.
+    return new_book
 
 
 def add_reading_progress(session: Session, booksId: int, date: date, pages_read: int):
@@ -131,22 +126,18 @@ def add_reading_progress(session: Session, booksId: int, date: date, pages_read:
     Returns:
         ReadingProgress: The newly added reading progress instance.
     """
-    # Create a new ReadingProgress object with the provided details.
     new_progress = ReadingProgress(
         booksId=booksId,
         date=date,
         pages_read=pages_read
     )
-    # Add the new reading progress entry to the database session.
     session.add(new_progress)
 
-    # Commit the transaction to save the new reading progress to the database.
     session.commit()
 
-    # Refresh the new_progress instance to load the generated ID from the database.
     session.refresh(new_progress)
 
-    return new_progress  # Return the newly added reading progress instance.
+    return new_progress
 
 
 def edit_book(session: Session, old_title: str, old_author: str, new_title: str, new_author: str,
@@ -167,18 +158,15 @@ def edit_book(session: Session, old_title: str, old_author: str, new_title: str,
     Returns:
         None
     """
-    # Query the database to find the book to be edited based on the current title and author.
     book_to_edit = session.query(Book).filter_by(title=old_title, author=old_author).first()
 
     if book_to_edit:
-        # Update the book's details with the new values.
         book_to_edit.title = new_title
         book_to_edit.author = new_author
         book_to_edit.start_date = new_start_date
         book_to_edit.daily_goal = new_daily_goal
         book_to_edit.end_date = new_end_date
 
-        # Commit the changes to the database.
         session.commit()
 
 
@@ -195,13 +183,10 @@ def fetch_reading_data(session: Session):
             - 'Date': The date of the reading progress entry.
             - 'Pages Read': The number of pages read on the given date.
     """
-    # Query the reading progress data, joining it with book titles.
     data = session.query(ReadingProgress, Book.title).join(Book).all()
 
-    # Initialize a list to hold the records as dictionaries.
     records = []
     for progress, title in data:
-        # Create a dictionary for each record with relevant details.
         records.append({
             'Title': title,
             'Date': progress.date,
@@ -211,7 +196,7 @@ def fetch_reading_data(session: Session):
     # Convert the list of dictionaries into a pandas DataFrame.
     df = pd.DataFrame(records)
 
-    return df  # Return the DataFrame with the reading data.
+    return df
 
 
 def remove_book(session: Session, book_title, book_author):
@@ -226,15 +211,13 @@ def remove_book(session: Session, book_title, book_author):
     Returns:
         bool: True if the book was successfully removed, False if the book was not found.
     """
-    # Query the database to find the book by its title and author.
     book_to_remove = session.query(Book).filter_by(title=book_title, author=book_author).first()
 
     if book_to_remove:
-        # Delete the book record from the database.
         session.delete(book_to_remove)
 
-        # Commit the transaction to save the changes.
         session.commit()
+
 
         return True  # Indicate the book was successfully removed.
 
